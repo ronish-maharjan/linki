@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -30,14 +32,14 @@ class AppDatabase extends _$AppDatabase {
 Future<AppDatabase> openDatabase() async {
   final directory = await getApplicationDocumentsDirectory();
 
-  final file = p.join(
-    directory.path,
-    'linki.sqlite',
+  final file = File(
+    p.join(
+      directory.path,
+      'linki.sqlite',
+    ),
   );
 
   return AppDatabase(
-    NativeDatabase.createInBackground(
-      file,
-    ),
+    NativeDatabase.createInBackground(file),
   );
 }
