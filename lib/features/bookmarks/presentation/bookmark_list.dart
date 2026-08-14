@@ -41,19 +41,24 @@ class BookmarkList extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const Divider(
-            height: 1,
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            12,
+            12,
+            24,
           ),
+          itemCount: items.length,
           itemBuilder: (context, index) {
             final bookmark = items[index];
 
-            return BookmarkTile(
-              bookmark: bookmark,
-              onEdit: () => onEdit(bookmark),
-              onDelete: () => onDelete(bookmark),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: BookmarkTile(
+                bookmark: bookmark,
+                onEdit: () => onEdit(bookmark),
+                onDelete: () => onDelete(bookmark),
+              ),
             );
           },
         );
@@ -112,24 +117,62 @@ class BookmarkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: _open,
-      title: Text(
-        bookmark.title.isEmpty
-            ? bookmark.url
-            : bookmark.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        bookmark.url,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        tooltip: 'More',
-        icon: const Icon(Icons.more_vert),
-        onPressed: () => _showMenu(context),
+    final theme = Theme.of(context);
+
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _open,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            14,
+            6,
+            14,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bookmark.title.isEmpty
+                          ? bookmark.url
+                          : bookmark.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      bookmark.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme
+                            .colorScheme
+                            .onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showMenu(context),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
