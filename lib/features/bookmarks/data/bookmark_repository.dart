@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../../../core/database/app_database.dart';
 
 class BookmarkRepository {
@@ -22,22 +24,23 @@ class BookmarkRepository {
         );
   }
 
-  Future<bool> updateBookmark({
+  Future<void> updateBookmark({
     required int id,
     required String title,
     required String url,
   }) async {
-    return database.update(database.bookmarks).write(
-          BookmarksCompanion(
-            title: Value(title),
-            url: Value(url),
-          ),
-          where: (bookmark) => bookmark.id.equals(id),
-        );
+    await (database.update(database.bookmarks)
+          ..where((bookmark) => bookmark.id.equals(id)))
+        .write(
+      BookmarksCompanion(
+        title: Value(title),
+        url: Value(url),
+      ),
+    );
   }
 
-  Future<int> deleteBookmark(int id) {
-    return (database.delete(database.bookmarks)
+  Future<void> deleteBookmark(int id) async {
+    await (database.delete(database.bookmarks)
           ..where((bookmark) => bookmark.id.equals(id)))
         .go();
   }

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../core/database/app_database.dart';
 
 class AddBookmarkScreen extends StatefulWidget {
-  const AddBookmarkScreen({super.key});
+  final Bookmark? bookmark;
+
+  const AddBookmarkScreen({
+    super.key,
+    this.bookmark,
+  });
 
   @override
   State<AddBookmarkScreen> createState() => _AddBookmarkScreenState();
@@ -17,7 +23,17 @@ class _AddBookmarkScreenState extends State<AddBookmarkScreen> {
     _titleController.dispose();
     super.dispose();
   }
-
+  @override
+  void initState() {
+    super.initState();
+  
+    final bookmark = widget.bookmark;
+  
+    if (bookmark != null) {
+      _urlController.text = bookmark.url;
+      _titleController.text = bookmark.title;
+    }
+  }
   void _save() {
     final url = _urlController.text.trim();
 
@@ -27,6 +43,7 @@ class _AddBookmarkScreenState extends State<AddBookmarkScreen> {
 
     Navigator.of(context).pop(
       BookmarkFormData(
+        id: widget.bookmark?.id,
         title: _titleController.text.trim(),
         url: url,
       ),
@@ -37,7 +54,11 @@ class _AddBookmarkScreenState extends State<AddBookmarkScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Bookmark'),
+        title: Text(
+          widget.bookmark == null
+              ? 'Add Bookmark'
+              : 'Edit Bookmark',
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -84,7 +105,11 @@ class _AddBookmarkScreenState extends State<AddBookmarkScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
-                  child: const Text('Save'),
+                  child: Text(
+                    widget.bookmark == null
+                        ? 'Save'
+                        : 'Update',
+                  ),
                 ),
               ),
             ],
@@ -96,10 +121,12 @@ class _AddBookmarkScreenState extends State<AddBookmarkScreen> {
 }
 
 class BookmarkFormData {
+  final int? id;
   final String title;
   final String url;
 
   const BookmarkFormData({
+    this.id,
     required this.title,
     required this.url,
   });
