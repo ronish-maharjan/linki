@@ -158,15 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature will be added next.'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-
   Future<void> _editBookmark(Bookmark bookmark) async {
     final result = await Navigator.push(
       context,
