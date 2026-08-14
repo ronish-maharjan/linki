@@ -27,27 +27,10 @@ class RssFeeds extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
-class RssArticles extends Table {
-  IntColumn get id => integer().autoIncrement()();
-
-  IntColumn get feedId => integer()();
-
-  TextColumn get title => text()();
-
-  TextColumn get url => text()();
-
-  TextColumn get description => text().nullable()();
-
-  DateTimeColumn get publishedAt => dateTime().nullable()();
-
-  DateTimeColumn get fetchedAt => dateTime()();
-}
-
 @DriftDatabase(
   tables: [
     Bookmarks,
     RssFeeds,
-    RssArticles,
   ],
 )
 
