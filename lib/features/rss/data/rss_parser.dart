@@ -57,6 +57,7 @@ class RssParser {
     final articles = channel
         .findElements('item')
         .map(_parseItem)
+        .where((article) => article.url.isNotEmpty)
         .toList();
 
     return ParsedRssFeed(
