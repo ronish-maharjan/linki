@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/database_provider.dart';
+import '../../bookmarks/data/bookmark_repository.dart';
 import '../../bookmarks/presentation/add_bookmark_screen.dart';
+import '../../bookmarks/presentation/bookmark_list.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,10 +18,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _selectedTab = 0;
 
+  BookmarkRepository? _bookmarkRepository;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeDatabase();
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeDatabase() async {
+    final database = await DatabaseProvider.instance;
+
+    if (!mounted) return;
+
+    setState(() {
+      _bookmarkRepository = BookmarkRepository(database);
+    });
   }
 
   void _selectTab(int index) {
@@ -69,14 +92,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   subtitle: 'Save a URL',
                   onTap: () async {
                     Navigator.pop(context);
-                  
+
                     final result = await Navigator.pushNamed(
                       context,
                       '/add-bookmark',
                     );
-                  
-                    if (result is BookmarkFormData) {
-                      // Database connection comes next.
+
+                    if (result is BookmarkFormData &&
+                        _bookmarkRepository != null) {
+                      await _bookmarkRepository!.addBookmark(
+                        title: result.title,
+                        url: result.url,
+                      );
                     }
                   },
                 ),
@@ -106,6 +133,65 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _editBookmark(Bookmark bookmark) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddBookmarkScreen(
+          bookmark: bookmark,
+        ),
+      ),
+    );
+
+    if (result is BookmarkFormData &&
+        result.id != null &&
+        _bookmarkRepository != null) {
+      await _bookmarkRepository!.updateBookmark(
+        id: result.id!,
+        title: result.title,
+        url: result.url,
+      );
+    }
+  }
+
+  Future<void> _deleteBookmark(Bookmark bookmark) async {
+    if (_bookmarkRepository == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete bookmark?'),
+          content: Text(
+            bookmark.title.isEmpty
+                ? bookmark.url
+                : bookmark.title,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await _bookmarkRepository!.deleteBookmark(
+        bookmark.id,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,13 +216,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        children: const [
-          _EmptyPage(
+        children: [
+          const _EmptyPage(
             message: 'No articles yet',
           ),
-          _EmptyPage(
-            message: 'No bookmarks yet',
-          ),
+          _bookmarkRepository == null
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : BookmarkList(
+                  bookmarks: _bookmarkRepository!.watchBookmarks(),
+                  onEdit: _editBookmark,
+                  onDelete: _deleteBookmark,
+                ),
         ],
       ),
     );

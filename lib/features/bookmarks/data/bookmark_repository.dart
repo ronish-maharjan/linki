@@ -22,8 +22,22 @@ class BookmarkRepository {
         );
   }
 
-  Future<void> deleteBookmark(int id) async {
-    await (database.delete(database.bookmarks)
+  Future<bool> updateBookmark({
+    required int id,
+    required String title,
+    required String url,
+  }) async {
+    return database.update(database.bookmarks).write(
+          BookmarksCompanion(
+            title: Value(title),
+            url: Value(url),
+          ),
+          where: (bookmark) => bookmark.id.equals(id),
+        );
+  }
+
+  Future<int> deleteBookmark(int id) {
+    return (database.delete(database.bookmarks)
           ..where((bookmark) => bookmark.id.equals(id)))
         .go();
   }
