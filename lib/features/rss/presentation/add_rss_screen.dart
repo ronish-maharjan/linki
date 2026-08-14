@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-
+import '../../../core/database/app_database.dart';
 import '../data/rss_client.dart';
 import '../data/rss_parser.dart';
 
 class AddRssScreen extends StatefulWidget {
-  const AddRssScreen({super.key});
+  final RssFeed? feed;
+
+  const AddRssScreen({
+    super.key,
+    this.feed,
+  });
 
   @override
   State<AddRssScreen> createState() => _AddRssScreenState();
@@ -19,6 +24,17 @@ class _AddRssScreenState extends State<AddRssScreen> {
   void dispose() {
     _urlController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  
+    final feed = widget.feed;
+  
+    if (feed != null) {
+      _urlController.text = feed.url;
+    }
   }
 
   Future<void> _addFeed() async {
@@ -58,6 +74,7 @@ class _AddRssScreenState extends State<AddRssScreen> {
       Navigator.pop(
         context,
         AddRssResult(
+          id: widget.feed?.id,
           name: feed.title,
           url: url,
         ),
@@ -89,7 +106,11 @@ class _AddRssScreenState extends State<AddRssScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add RSS Feed'),
+        title: Text(
+          widget.feed == null
+              ? 'Add RSS Feed'
+              : 'Edit RSS Feed',
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -121,15 +142,19 @@ class _AddRssScreenState extends State<AddRssScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _loading ? null : _addFeed,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('Add Feed'),
+                child: _loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        widget.feed == null
+                            ? 'Add Feed'
+                            : 'Save',
+                      ),
                 ),
               ),
             ],
@@ -141,10 +166,12 @@ class _AddRssScreenState extends State<AddRssScreen> {
 }
 
 class AddRssResult {
+  final int? id;
   final String name;
   final String url;
 
   const AddRssResult({
+    this.id,
     required this.name,
     required this.url,
   });
