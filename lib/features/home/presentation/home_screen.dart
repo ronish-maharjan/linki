@@ -7,8 +7,8 @@ import '../../bookmarks/presentation/add_bookmark_screen.dart';
 import '../../bookmarks/presentation/bookmark_list.dart';
 import '../../rss/data/rss_repository.dart';
 import '../../rss/presentation/add_rss_screen.dart';
-import '../../rss/presentation/rss_home_screen.dart';
 import '../../rss/presentation/rss_feeds_screen.dart';
+import '../../rss/presentation/rss_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,22 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _rssRepository = RssRepository(database);
     });
   }
-  void _openFeedManager() {
-    final repository = _rssRepository;
-  
-    if (repository == null) {
-      return;
-    }
-  
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RssFeedsScreen(
-          repository: repository,
-        ),
-      ),
-    );
-  }
+
   void _selectTab(int index) {
     if (_selectedTab == index) return;
 
@@ -90,6 +75,23 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedTab = index;
     });
+  }
+
+  void _openFeedManager() {
+    final repository = _rssRepository;
+
+    if (repository == null) {
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RssFeedsScreen(
+          repository: repository,
+        ),
+      ),
+    );
   }
 
   void _showAddMenu() {
@@ -119,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 _AddOption(
                   icon: Icons.bookmark_outline,
                   title: 'Bookmark',
@@ -142,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                 ),
-
                 _AddOption(
                   icon: Icons.rss_feed,
                   title: 'RSS Feed',
@@ -250,10 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         titleSpacing: 0,
         title: _TabBar(
-              selectedIndex: _selectedTab,
-              onSelected: _selectTab,
-              onLongPressRss: _openFeedManager,
-            ),
+          selectedIndex: _selectedTab,
+          onSelected: _selectTab,
+          onLongPressRss: _openFeedManager,
+        ),
         actions: [
           IconButton(
             tooltip: 'Add',
@@ -263,7 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 4),
         ],
       ),
-
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
@@ -275,7 +274,6 @@ class _HomeScreenState extends State<HomeScreen> {
               : RssHomeScreen(
                   database: _database!,
                 ),
-
           _bookmarkRepository == null
               ? const Center(
                   child: CircularProgressIndicator(),
@@ -293,6 +291,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// ─────────────────────────────────────────────
+// Tab bar
+// ─────────────────────────────────────────────
+
 class _TabBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -303,12 +305,7 @@ class _TabBar extends StatelessWidget {
     required this.onSelected,
     required this.onLongPressRss,
   });
-  const _TabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.onLongPress,
-  });
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -330,6 +327,10 @@ class _TabBar extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────
+// Individual tab
+// ─────────────────────────────────────────────
 
 class _TabButton extends StatelessWidget {
   final String label;
@@ -395,6 +396,10 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────
+// Add menu option
+// ─────────────────────────────────────────────
 
 class _AddOption extends StatelessWidget {
   final IconData icon;
