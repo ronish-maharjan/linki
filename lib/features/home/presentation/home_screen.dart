@@ -5,8 +5,9 @@ import '../../../core/database/database_provider.dart';
 import '../../bookmarks/data/bookmark_repository.dart';
 import '../../bookmarks/presentation/add_bookmark_screen.dart';
 import '../../bookmarks/presentation/bookmark_list.dart';
-import '../../rss/presentation/add_rss_screen.dart';
 import '../../rss/data/rss_repository.dart';
+import '../../rss/presentation/add_rss_screen.dart';
+import '../../rss/presentation/rss_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,64 +21,56 @@ class _HomeScreenState extends State<HomeScreen> {
 
   BookmarkRepository? _bookmarkRepository;
   RssRepository? _rssRepository;
+  AppDatabase? _database;
+
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+
+    _pageController = PageController(
+      initialPage: _selectedTab,
+    );
+
     _initializeDatabase();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeDatabase() async {
     final database = await DatabaseProvider.instance;
-    
+
     if (!mounted) return;
-    
+
     setState(() {
+      _database = database;
       _bookmarkRepository = BookmarkRepository(database);
       _rssRepository = RssRepository(database);
     });
   }
 
-  Widget _buildCurrentPage() {
-    if (_selectedTab == 0) {
-      return const _EmptyPage(
-        message: 'No articles yet',
-      );
-    }
-  
-    if (_bookmarkRepository == null) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-  
-    return BookmarkList(
-      bookmarks: _bookmarkRepository!.watchBookmarks(),
-      onEdit: _editBookmark,
-      onDelete: _deleteBookmark,
+  void _selectTab(int index) {
+    if (_selectedTab == index) return;
+
+    setState(() {
+      _selectedTab = index;
+    });
+
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
     );
   }
 
-  void _handleHorizontalSwipe(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-  
-    if (velocity.abs() < 600) {
-      return;
-    }
-  
-    if (velocity < 0 && _selectedTab == 0) {
-      _selectTab(1);
-      return;
-    }
-  
-    if (velocity > 0 && _selectedTab == 1) {
-      _selectTab(0);
-    }
-  }
-
-  void _selectTab(int index) {
+  void _onPageChanged(int index) {
     if (_selectedTab == index) return;
-  
+
     setState(() {
       _selectedTab = index;
     });
@@ -90,7 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              24,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -105,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+
                 _AddOption(
                   icon: Icons.bookmark_outline,
                   title: 'Bookmark',
@@ -112,7 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () async {
                     Navigator.pop(context);
 
-                    final result = await Navigator.pushNamed(
+                    final result =
+                        await Navigator.pushNamed(
                       context,
                       '/add-bookmark',
                     );
@@ -126,24 +126,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                 ),
+
                 _AddOption(
                   icon: Icons.rss_feed,
                   title: 'RSS Feed',
                   subtitle: 'Follow a website',
                   onTap: () async {
                     Navigator.pop(context);
-                
-                    final result = await Navigator.push<AddRssResult>(
+
+                    final result =
+                        await Navigator.push<AddRssResult>(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AddRssScreen(),
+                        builder: (_) =>
+                            const AddRssScreen(),
                       ),
                     );
-                
-                    if (result == null || _rssRepository == null) {
+
+                    if (result == null ||
+                        _rssRepository == null) {
                       return;
                     }
-                
+
                     await _rssRepository!.addFeed(
                       name: result.name,
                       url: result.url,
@@ -158,7 +162,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _editBookmark(Bookmark bookmark) async {
+  Future<void> _editBookmark(
+    Bookmark bookmark,
+  ) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -179,7 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _deleteBookmark(Bookmark bookmark) async {
+  Future<void> _deleteBookmark(
+    Bookmark bookmark,
+  ) async {
     if (_bookmarkRepository == null) return;
 
     final confirmed = await showDialog<bool>(
@@ -238,11 +246,32 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: _handleHorizontalSwipe,
-        child: _buildCurrentPage(),
-      ),
 
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: [
+          _database == null
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : RssHomeScreen(
+                  database: _database!,
+                ),
+
+          _bookmarkRepository == null
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : BookmarkList(
+                  bookmarks:
+                      _bookmarkRepository!
+                          .watchBookmarks(),
+                  onEdit: _editBookmark,
+                  onDelete: _deleteBookmark,
+                ),
+        ],
+      ),
     );
   }
 }
@@ -292,7 +321,9 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = selected
         ? Theme.of(context).colorScheme.onSurface
-        : Theme.of(context).colorScheme.onSurfaceVariant;
+        : Theme.of(context)
+            .colorScheme
+            .onSurfaceVariant;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -318,13 +349,16 @@ class _TabButton extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(
+                milliseconds: 180,
+              ),
               curve: Curves.easeOut,
               height: 2,
               width: selected ? 20 : 0,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(2),
               ),
             ),
           ],
@@ -350,7 +384,8 @@ class _AddOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
+      contentPadding:
+          const EdgeInsets.symmetric(
         horizontal: 4,
         vertical: 2,
       ),
@@ -358,27 +393,6 @@ class _AddOption extends StatelessWidget {
       title: Text(title),
       subtitle: Text(subtitle),
       onTap: onTap,
-    );
-  }
-}
-
-class _EmptyPage extends StatelessWidget {
-  final String message;
-
-  const _EmptyPage({
-    required this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        message,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontSize: 15,
-        ),
-      ),
     );
   }
 }

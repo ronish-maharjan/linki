@@ -29,6 +29,7 @@ class RssArticleList extends StatelessWidget {
     }
 
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         16,
         8,
@@ -36,29 +37,26 @@ class RssArticleList extends StatelessWidget {
         24,
       ),
       itemCount: articles.length,
-      separatorBuilder: (_, __) => Divider(
-        height: 1,
-        color: Theme.of(context)
-            .colorScheme
-            .outlineVariant,
-      ),
+      separatorBuilder: (_, __) {
+        return Divider(
+          height: 1,
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant,
+        );
+      },
       itemBuilder: (context, index) {
         final article = articles[index];
 
+        // Feed name is mapped using the article URL.
+        final feedName = feedNames[article.url];
+
         return _ArticleTile(
           article: article,
-          feedName: _findFeedName(article),
+          feedName: feedName,
         );
       },
     );
-  }
-
-  String? _findFeedName(
-    ParsedRssArticle article,
-  ) {
-    // Feed name mapping will be connected
-    // when the RSS home screen is wired.
-    return null;
   }
 }
 
@@ -101,13 +99,13 @@ class _ArticleTile extends StatelessWidget {
             const SizedBox(height: 5),
             Row(
               children: [
-                if (feedName != null) ...[
+                if (feedName != null &&
+                    feedName!.isNotEmpty) ...[
                   Flexible(
                     child: Text(
                       feedName!,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme
@@ -124,6 +122,7 @@ class _ArticleTile extends StatelessWidget {
                     ),
                   ),
                 ],
+
                 Expanded(
                   child: Text(
                     _domain(article.url),
@@ -136,7 +135,9 @@ class _ArticleTile extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 8),
+
                 Text(
                   _relativeTime(
                     article.publishedAt,
@@ -159,12 +160,14 @@ class _ArticleTile extends StatelessWidget {
     try {
       final uri = Uri.parse(url);
 
-      return uri.host.isEmpty
-          ? url
-          : uri.host.replaceFirst(
-              'www.',
-              '',
-            );
+      if (uri.host.isEmpty) {
+        return url;
+      }
+
+      return uri.host.replaceFirst(
+        'www.',
+        '',
+      );
     } catch (_) {
       return url;
     }
