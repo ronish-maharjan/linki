@@ -8,6 +8,7 @@ import '../../bookmarks/presentation/bookmark_list.dart';
 import '../../rss/data/rss_repository.dart';
 import '../../rss/presentation/add_rss_screen.dart';
 import '../../rss/presentation/rss_home_screen.dart';
+import '../../rss/presentation/rss_feeds_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,7 +54,22 @@ class _HomeScreenState extends State<HomeScreen> {
       _rssRepository = RssRepository(database);
     });
   }
-
+  void _openFeedManager() {
+    final repository = _rssRepository;
+  
+    if (repository == null) {
+      return;
+    }
+  
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RssFeedsScreen(
+          repository: repository,
+        ),
+      ),
+    );
+  }
   void _selectTab(int index) {
     if (_selectedTab == index) return;
 
@@ -234,9 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         titleSpacing: 0,
         title: _TabBar(
-          selectedIndex: _selectedTab,
-          onSelected: _selectTab,
-        ),
+              selectedIndex: _selectedTab,
+              onSelected: _selectTab,
+              onLongPressRss: _openFeedManager,
+            ),
         actions: [
           IconButton(
             tooltip: 'Add',
@@ -279,12 +296,19 @@ class _HomeScreenState extends State<HomeScreen> {
 class _TabBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final VoidCallback onLongPressRss;
 
   const _TabBar({
     required this.selectedIndex,
     required this.onSelected,
+    required this.onLongPressRss,
   });
-
+  const _TabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.onLongPress,
+  });
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -294,6 +318,7 @@ class _TabBar extends StatelessWidget {
           label: 'RSS',
           selected: selectedIndex == 0,
           onTap: () => onSelected(0),
+          onLongPress: onLongPressRss,
         ),
         const SizedBox(width: 24),
         _TabButton(
@@ -310,11 +335,13 @@ class _TabButton extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _TabButton({
     required this.label,
     required this.selected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -328,6 +355,7 @@ class _TabButton extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 4,
