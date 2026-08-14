@@ -5,6 +5,8 @@ import '../../../core/database/database_provider.dart';
 import '../../bookmarks/data/bookmark_repository.dart';
 import '../../bookmarks/presentation/add_bookmark_screen.dart';
 import '../../bookmarks/presentation/bookmark_list.dart';
+import '../../rss/presentation/add_rss_screen.dart';
+import '../../rss/data/rss_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0;
 
   BookmarkRepository? _bookmarkRepository;
+  RssRepository? _rssRepository;
 
   @override
   void initState() {
@@ -26,11 +29,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeDatabase() async {
     final database = await DatabaseProvider.instance;
-
+    
     if (!mounted) return;
-
+    
     setState(() {
       _bookmarkRepository = BookmarkRepository(database);
+      _rssRepository = RssRepository(database);
     });
   }
 
@@ -126,9 +130,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.rss_feed,
                   title: 'RSS Feed',
                   subtitle: 'Follow a website',
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    _showComingSoon('Add RSS Feed');
+                
+                    final result = await Navigator.push<AddRssResult>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddRssScreen(),
+                      ),
+                    );
+                
+                    if (result == null || _rssRepository == null) {
+                      return;
+                    }
+                
+                    await _rssRepository!.addFeed(
+                      name: result.name,
+                      url: result.url,
+                    );
                   },
                 ),
               ],
