@@ -14,8 +14,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _pageController = PageController();
-
+  double _dragStartX = 0;
+  double _dragStartY = 0;
   int _selectedTab = 0;
 
   BookmarkRepository? _bookmarkRepository;
@@ -24,12 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initializeDatabase();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   Future<void> _initializeDatabase() async {
@@ -42,18 +36,48 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Widget _buildCurrentPage() {
+    if (_selectedTab == 0) {
+      return const _EmptyPage(
+        message: 'No articles yet',
+      );
+    }
+  
+    if (_bookmarkRepository == null) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+  
+    return BookmarkList(
+      bookmarks: _bookmarkRepository!.watchBookmarks(),
+      onEdit: _editBookmark,
+      onDelete: _deleteBookmark,
+    );
+  }
+
+  void _handleHorizontalSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+  
+    if (velocity.abs() < 600) {
+      return;
+    }
+  
+    if (velocity < 0 && _selectedTab == 0) {
+      _selectTab(1);
+      return;
+    }
+  
+    if (velocity > 0 && _selectedTab == 1) {
+      _selectTab(0);
+    }
+  }
   void _selectTab(int index) {
     if (_selectedTab == index) return;
-
+  
     setState(() {
       _selectedTab = index;
     });
-
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-    );
   }
 
   void _onPageChanged(int index) {
@@ -213,24 +237,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: [
-          const _EmptyPage(
-            message: 'No articles yet',
-          ),
-          _bookmarkRepository == null
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : BookmarkList(
-                  bookmarks: _bookmarkRepository!.watchBookmarks(),
-                  onEdit: _editBookmark,
-                  onDelete: _deleteBookmark,
-                ),
-        ],
+      body: GestureDetector(
+        onHorizontalDragEnd: _handleHorizontalSwipe,
+        child: _buildCurrentPage(),
       ),
+
     );
   }
 }
