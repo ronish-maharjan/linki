@@ -3,6 +3,9 @@ name: Initialize Flutter
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   initialize:
     runs-on: ubuntu-latest
