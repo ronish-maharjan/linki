@@ -39,7 +39,7 @@ class LinkiExporter {
       utf8.encode(buffer.toString()),
     );
 
-    final path = await FilePicker.platform.saveFile(
+    final path = await FilePicker.saveFile(
       dialogTitle: 'Save Linki export',
       fileName: 'linki.txt',
       type: FileType.custom,
