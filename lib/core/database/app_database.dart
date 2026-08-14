@@ -17,16 +17,45 @@ class Bookmarks extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+class RssFeeds extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text()();
+
+  TextColumn get url => text()();
+
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class RssArticles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get feedId => integer()();
+
+  TextColumn get title => text()();
+
+  TextColumn get url => text()();
+
+  TextColumn get description => text().nullable()();
+
+  DateTimeColumn get publishedAt => dateTime().nullable()();
+
+  DateTimeColumn get fetchedAt => dateTime()();
+}
+
 @DriftDatabase(
   tables: [
     Bookmarks,
+    RssFeeds,
+    RssArticles,
   ],
 )
+
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 }
 
 Future<AppDatabase> openDatabase() async {
