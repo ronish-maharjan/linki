@@ -14,8 +14,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  double _dragStartX = 0;
-  double _dragStartY = 0;
   int _selectedTab = 0;
 
   BookmarkRepository? _bookmarkRepository;
@@ -72,17 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectTab(0);
     }
   }
+
   void _selectTab(int index) {
     if (_selectedTab == index) return;
   
-    setState(() {
-      _selectedTab = index;
-    });
-  }
-
-  void _onPageChanged(int index) {
-    if (_selectedTab == index) return;
-
     setState(() {
       _selectedTab = index;
     });
