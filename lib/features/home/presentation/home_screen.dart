@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../bookmarks/presentation/add_bookmark_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -66,9 +67,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.bookmark_outline,
                   title: 'Bookmark',
                   subtitle: 'Save a URL',
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    _showComingSoon('Add Bookmark');
+                  
+                    final result = await Navigator.pushNamed(
+                      context,
+                      '/add-bookmark',
+                    );
+                  
+                    if (result is BookmarkFormData) {
+                      // Database connection comes next.
+                    }
                   },
                 ),
                 _AddOption(
