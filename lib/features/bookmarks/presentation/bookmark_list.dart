@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/browser/external_browser.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/browser/external_browser.dart';
 
 class BookmarkList extends StatelessWidget {
   final Stream<List<Bookmark>> bookmarks;
@@ -20,7 +20,8 @@ class BookmarkList extends StatelessWidget {
     return StreamBuilder<List<Bookmark>>(
       stream: bookmarks,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -41,24 +42,31 @@ class BookmarkList extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
+        return ListView.separated(
+          physics:
+              const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
-            12,
-            12,
-            12,
+            16,
+            8,
+            8,
             24,
           ),
           itemCount: items.length,
+          separatorBuilder: (_, __) {
+            return Divider(
+              height: 1,
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant,
+            );
+          },
           itemBuilder: (context, index) {
             final bookmark = items[index];
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: BookmarkTile(
-                bookmark: bookmark,
-                onEdit: () => onEdit(bookmark),
-                onDelete: () => onDelete(bookmark),
-              ),
+            return _BookmarkTile(
+              bookmark: bookmark,
+              onEdit: () => onEdit(bookmark),
+              onDelete: () => onDelete(bookmark),
             );
           },
         );
@@ -67,20 +75,82 @@ class BookmarkList extends StatelessWidget {
   }
 }
 
-class BookmarkTile extends StatelessWidget {
+class _BookmarkTile extends StatelessWidget {
   final Bookmark bookmark;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const BookmarkTile({
-    super.key,
+  const _BookmarkTile({
     required this.bookmark,
     required this.onEdit,
     required this.onDelete,
   });
 
-  Future<void> _open() async {
+  Future<void> _openBookmark() async {
     await ExternalBrowser().open(bookmark.url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: _openBookmark,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 14,
+        ),
+        child: Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    bookmark.title.isEmpty
+                        ? bookmark.url
+                        : bookmark.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _domain(bookmark.url),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme
+                          .onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'More',
+              visualDensity:
+                  VisualDensity.compact,
+              icon: const Icon(
+                Icons.more_vert,
+                size: 20,
+              ),
+              onPressed: () {
+                _showMenu(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showMenu(BuildContext context) {
@@ -93,7 +163,9 @@ class BookmarkTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.edit_outlined),
+                leading: const Icon(
+                  Icons.edit_outlined,
+                ),
                 title: const Text('Edit'),
                 onTap: () {
                   Navigator.pop(context);
@@ -101,7 +173,9 @@ class BookmarkTile extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete_outline),
+                leading: const Icon(
+                  Icons.delete_outline,
+                ),
                 title: const Text('Delete'),
                 onTap: () {
                   Navigator.pop(context);
@@ -115,65 +189,20 @@ class BookmarkTile extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  String _domain(String url) {
+    try {
+      final uri = Uri.parse(url);
 
-    return Material(
-      color: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _open,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            14,
-            6,
-            14,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      bookmark.title.isEmpty
-                          ? bookmark.url
-                          : bookmark.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      bookmark.url,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme
-                            .colorScheme
-                            .onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                tooltip: 'More',
-                icon: const Icon(Icons.more_vert),
-                onPressed: () => _showMenu(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+      if (uri.host.isEmpty) {
+        return url;
+      }
+
+      return uri.host.replaceFirst(
+        'www.',
+        '',
+      );
+    } catch (_) {
+      return url;
+    }
   }
 }
