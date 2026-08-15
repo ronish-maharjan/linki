@@ -251,11 +251,89 @@ class RssParser {
     return null;
   }
 
+  
   DateTime? _parseDate(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.isEmpty) return null;
+  
+    // 1. ISO 8601 / RFC 3339 (Atom feeds)
+    // Example: 2026-07-21T00:00:00+00:00
+    final iso = DateTime.tryParse(value);
+    if (iso != null) return iso;
+  
+    // 2. RFC 822 / RFC 2822 (RSS 2.0 feeds)
+    // Examples: Fri, 07 Aug 2026 16:01:02 GMT
+    //           Fri, 07 Aug 2026 16:01:02 +0000
+    //           07 Aug 2026 16:01:02 +05:30
+    return _parseRfc822Date(value);
+  }
+  
+  DateTime? _parseRfc822Date(String value) {
+    var cleaned = value.trim();
+  
+    // Strip optional day name like "Fri, " or "Friday, "
+    final commaIdx = cleaned.indexOf(',');
+    if (commaIdx != -1 && commaIdx < 15) {
+      cleaned = cleaned.substring(commaIdx + 1).trim();
+    }
+  
+    const months = {
+      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+      'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+      'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+    };
+  
+    final match = RegExp(
+      r'^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*([\+\-]?\d[\d:]*)?$',
+    ).firstMatch(cleaned);
+  
+    if (match == null) return null;
+  
+    final day = int.tryParse(match.group(1)!);
+    final month = months[match.group(2)!];
+    final year = int.tryParse(match.group(3)!);
+    final hour = int.tryParse(match.group(4)!);
+    final minute = int.tryParse(match.group(5)!);
+    final second = int.tryParse(match.group(6)!);
+    final tz = (match.group(7) ?? '').trim();
+  
+    if (day == null || month == null || year == null ||
+        hour == null || minute == null || second == null) {
       return null;
     }
-
-    return DateTime.tryParse(value);
+  
+    // Parse timezone offset
+    Duration offset = Duration.zero;
+  
+    if (tz.isNotEmpty && tz != 'GMT' && tz != 'UTC') {
+      // Numeric offsets: +0000, +00:00, -0530
+      if (tz.startsWith('+') || tz.startsWith('-')) {
+        final sign = tz.startsWith('-') ? -1 : 1;
+        final nums = tz.substring(1).replaceAll(':', '');
+        if (nums.length >= 2) {
+          final h = int.tryParse(nums.substring(0, 2)) ?? 0;
+          final m = nums.length >= 4 ? int.tryParse(nums.substring(2, 4)) ?? 0 : 0;
+          offset = Duration(hours: h * sign, minutes: m * sign);
+        }
+      } else {
+        // Common abbreviations
+        const abbr = {
+          'UT': 0, 'GMT': 0, 'UTC': 0,
+          'EST': -5, 'EDT': -4,
+          'CST': -6, 'CDT': -5,
+          'MST': -7, 'MDT': -6,
+          'PST': -8, 'PDT': -7,
+        };
+        final h = abbr[tz.toUpperCase()];
+        if (h != null) offset = Duration(hours: h);
+      }
+    }
+  
+    try {
+      final dt = DateTime.utc(year, month, day, hour, minute, second);
+      return dt.subtract(offset); // Convert to UTC
+    } catch (_) {
+      return null;
+    }
   }
+
 }
