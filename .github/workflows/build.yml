@@ -1,0 +1,54 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'          # triggers on tags like v1.0.0, v1.2.3
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate database code
+        run: dart run build_runner build
+
+      - name: Generate app icon
+        run: flutter pub run flutter_launcher_icons:main
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Rename APK with version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/kimo-${VERSION}.apk"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/kimo-*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
