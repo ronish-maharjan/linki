@@ -373,24 +373,23 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = selected
         ? Theme.of(context).colorScheme.onSurface
-        : Theme.of(context)
-            .colorScheme
-            .onSurfaceVariant;
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       onLongPress: onLongPress,
       child: Padding(
-        padding: const EdgeInsets.only(
-          left: 4,
-          right: 4,
-          top: 17,   
-          bottom: 11,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: 14,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Balances the 5px gap + 2px indicator below,
+            // so the text sits exactly at the vertical center
+            const SizedBox(height: 7),
             Text(
               label,
               style: TextStyle(
