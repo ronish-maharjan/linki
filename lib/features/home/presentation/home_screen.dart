@@ -277,12 +277,12 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _exportData,
             icon: const Icon(
               Icons.ios_share,
-              size: 21,
+              size: 18,
             ),),  
         IconButton(
             tooltip: 'Add',
             onPressed: _showAddMenu,
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add,size:18),
           ),
           const SizedBox(width: 4),
         ],
