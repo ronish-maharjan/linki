@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/export/linki_exporter.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../bookmarks/data/bookmark_repository.dart';
@@ -42,25 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  Future<void> _exportData() async {
-    final database = _database;
-  
-    if (database == null) {
-      return;
-    }
-  
-    final bookmarks =
-        await database.select(database.bookmarks).get();
-  
-    final feeds =
-        await database.select(database.rssFeeds).get();
-  
-    await LinkiExporter.export(
-      bookmarks: bookmarks,
-      feeds: feeds,
-    );
   }
 
   Future<void> _initializeDatabase() async {
