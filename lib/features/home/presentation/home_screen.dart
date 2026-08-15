@@ -282,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
         IconButton(
             tooltip: 'Add',
             onPressed: _showAddMenu,
-            icon: const Icon(Icons.add,size:18),
+            icon: const Icon(Icons.add),
           ),
           const SizedBox(width: 4),
         ],
@@ -382,9 +382,11 @@ class _TabButton extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: 14,
+        padding: const EdgeInsets.only(
+          left: 4,
+          right: 4,
+          top: 17,   
+          bottom: 11,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
