@@ -29,3 +29,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"  # optional: background color for Android adaptive icon
+  adaptive_icon_foreground: "assets/images/app_icon.png"  # optional: foreground layer
+  remove_alpha_ios: true  # iOS requires no transparency
