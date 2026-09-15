@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
@@ -23,10 +25,15 @@ class _RssHomeScreenState extends State<RssHomeScreen> {
   late final RssRepository _repository;
   late final RssService _service;
 
+  StreamSubscription<RssFeedResult>? _feedSubscription;
+  Timer? _publishTimer;
+
   List<_RssArticleWithFeed> _articles = [];
 
   bool _loading = true;
   bool _refreshing = false;
+
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -41,28 +48,127 @@ class _RssHomeScreenState extends State<RssHomeScreen> {
   Future<void> _loadArticles({
     bool refresh = false,
   }) async {
-    if (refresh) {
-      setState(() {
-        _refreshing = true;
-      });
-    } else {
-      setState(() {
-        _loading = true;
-      });
+    // Do not start another refresh while one is already running.
+    if (refresh && _refreshing) {
+      return;
     }
+
+    final generation = ++_loadGeneration;
+
+    await _feedSubscription?.cancel();
+    _feedSubscription = null;
+
+    _publishTimer?.cancel();
+    _publishTimer = null;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      if (refresh) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+      }
+    });
 
     try {
       final feeds = await _repository.watchFeeds().first;
 
+      if (!mounted || generation != _loadGeneration) {
+        return;
+      }
+
       final results = <_RssArticleWithFeed>[];
 
-      for (final feed in feeds) {
-        try {
-          final articles = await _service.fetchFeed(
-            feed.url,
+      void sortResults() {
+        results.sort((a, b) {
+          final aDate = a.article.publishedAt;
+          final bDate = b.article.publishedAt;
+
+          if (aDate == null && bDate == null) {
+            return 0;
+          }
+
+          if (aDate == null) {
+            return 1;
+          }
+
+          if (bDate == null) {
+            return -1;
+          }
+
+          return bDate.compareTo(aDate);
+        });
+      }
+
+      void publishResults({
+        bool immediate = false,
+      }) {
+        if (!mounted ||
+            generation != _loadGeneration) {
+          return;
+        }
+
+        if (immediate) {
+          _publishTimer?.cancel();
+          _publishTimer = null;
+        } else {
+          if (_publishTimer?.isActive ?? false) {
+            return;
+          }
+
+          _publishTimer = Timer(
+            const Duration(milliseconds: 75),
+            () {
+              _publishTimer = null;
+              publishResults(immediate: true);
+            },
           );
 
-          for (final article in articles) {
+          return;
+        }
+
+        sortResults();
+
+        setState(() {
+          _articles =
+              List<_RssArticleWithFeed>.from(results);
+
+          _loading = false;
+        });
+      }
+
+      if (feeds.isEmpty) {
+        setState(() {
+          _articles = [];
+          _loading = false;
+          _refreshing = false;
+        });
+
+        return;
+      }
+
+      final completed = Completer<void>();
+
+      _feedSubscription = _service
+          .fetchFeedsStream(
+            feeds.map((feed) => feed.url).toList(),
+            concurrency: 8,
+          )
+          .listen(
+        (result) {
+          if (!mounted ||
+              generation != _loadGeneration) {
+            return;
+          }
+
+          final feed = feeds.firstWhere(
+            (feed) => feed.url == result.url,
+          );
+
+          for (final article in result.articles) {
             results.add(
               _RssArticleWithFeed(
                 article: article,
@@ -70,40 +176,70 @@ class _RssHomeScreenState extends State<RssHomeScreen> {
               ),
             );
           }
-        } catch (_) {
-          // One broken feed should not prevent
-          // the other feeds from loading.
-        }
-      }
 
-      results.sort((a, b) {
-        final aDate = a.article.publishedAt;
-        final bDate = b.article.publishedAt;
+          publishResults();
+        },
+        onDone: () {
+          _publishTimer?.cancel();
+          _publishTimer = null;
 
-        if (aDate == null && bDate == null) {
-          return 0;
-        }
+          if (mounted &&
+              generation == _loadGeneration) {
+            sortResults();
 
-        if (aDate == null) {
-          return 1;
-        }
+            setState(() {
+              _articles =
+                  List<_RssArticleWithFeed>.from(
+                results,
+              );
 
-        if (bDate == null) {
-          return -1;
-        }
+              _loading = false;
+              _refreshing = false;
+            });
+          }
 
-        return bDate.compareTo(aDate);
-      });
+          _feedSubscription = null;
 
-      if (!mounted) return;
+          if (!completed.isCompleted) {
+            completed.complete();
+          }
+        },
+        onError: (_, __) {
+          _publishTimer?.cancel();
+          _publishTimer = null;
 
-      setState(() {
-        _articles = results;
-        _loading = false;
-        _refreshing = false;
-      });
+          if (mounted &&
+              generation == _loadGeneration) {
+            sortResults();
+
+            setState(() {
+              _articles =
+                  List<_RssArticleWithFeed>.from(
+                results,
+              );
+
+              _loading = false;
+              _refreshing = false;
+            });
+          }
+
+          _feedSubscription = null;
+
+          if (!completed.isCompleted) {
+            completed.complete();
+          }
+        },
+      );
+
+      // IMPORTANT:
+      // Keep _loadArticles alive until all feed workers
+      // have actually finished.
+      await completed.future;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted ||
+          generation != _loadGeneration) {
+        return;
+      }
 
       setState(() {
         _loading = false;
@@ -112,8 +248,22 @@ class _RssHomeScreenState extends State<RssHomeScreen> {
     }
   }
 
-  Future<void> _refresh() {
-    return _loadArticles(refresh: true);
+  Future<void> _refresh() async {
+    if (_refreshing) {
+      return;
+    }
+
+    await _loadArticles(refresh: true);
+  }
+
+  @override
+  void dispose() {
+    _loadGeneration++;
+
+    _publishTimer?.cancel();
+    _feedSubscription?.cancel();
+
+    super.dispose();
   }
 
   @override
@@ -133,8 +283,9 @@ class _RssHomeScreenState extends State<RssHomeScreen> {
                   children: [
                     SizedBox(
                       height:
-                          MediaQuery.sizeOf(context).height *
-                              0.35,
+                          MediaQuery.sizeOf(context)
+                              .height *
+                          0.35,
                     ),
                     Center(
                       child: Text(

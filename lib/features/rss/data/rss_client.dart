@@ -2,12 +2,16 @@ import 'package:http/http.dart' as http;
 
 class RssClient {
   Future<String> fetch(String url) async {
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        'User-Agent': 'Linki/1.0',
-      },
-    );
+    final response = await http
+        .get(
+          Uri.parse(url),
+          headers: {
+            'User-Agent': 'Linki/1.0',
+          },
+        )
+        .timeout(
+          const Duration(seconds: 20),
+        );
 
     if (response.statusCode < 200 ||
         response.statusCode >= 300) {
